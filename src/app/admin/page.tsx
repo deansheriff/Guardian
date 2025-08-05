@@ -1,11 +1,34 @@
+'use client';
 import { Activity, FileText, Sparkles, SlidersHorizontal, Users, MapPin } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ActivityLog } from '@/components/admin/activity-log';
-import { ReportGenerator } from '@/components/admin/report-generator';
-import { SettingsForm } from '@/components/guard/settings-form';
-import { UserManagement } from '@/components/admin/user-management';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LocationManagement } from '@/components/admin/location-management';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const ActivityLog = dynamic(
+    () => import('@/components/admin/activity-log').then(mod => mod.ActivityLog),
+    { ssr: false, loading: () => <Skeleton className="h-[400px]" /> }
+);
+
+const ReportGenerator = dynamic(
+    () => import('@/components/admin/report-generator').then(mod => mod.ReportGenerator),
+    { ssr: false, loading: () => <Skeleton className="h-[400px]" /> }
+);
+
+const UserManagement = dynamic(
+    () => import('@/components/admin/user-management').then(mod => mod.UserManagement),
+    { ssr: false, loading: () => <Skeleton className="h-[400px]" /> }
+);
+
+const LocationManagement = dynamic(
+    () => import('@/components/admin/location-management').then(mod => mod.LocationManagement),
+    { ssr: false, loading: () => <Skeleton className="h-[400px]" /> }
+);
+
+const SettingsForm = dynamic(
+    () => import('@/components/guard/settings-form').then(mod => mod.SettingsForm),
+    { ssr: false, loading: () => <Skeleton className="h-[200px]" /> }
+);
 
 export default function AdminDashboardPage() {
   return (

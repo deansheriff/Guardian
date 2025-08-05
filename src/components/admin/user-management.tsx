@@ -84,6 +84,7 @@ export function UserManagement() {
                                 <TableHead>Name</TableHead>
                                 <TableHead>Email</TableHead>
                                 <TableHead>Role</TableHead>
+                                <TableHead>Rank</TableHead>
                                 <TableHead>Assigned Location</TableHead>
                                 <TableHead>Shift Hours</TableHead>
                                 <TableHead>Actions</TableHead>
@@ -92,12 +93,22 @@ export function UserManagement() {
                         <TableBody>
                             {users.map((user) => (
                                 <TableRow key={user.id}>
-                                    <TableCell className="font-medium whitespace-nowrap">{user.name}</TableCell>
+                                    <TableCell className="font-medium whitespace-nowrap">
+                                        <div className="flex items-center gap-3">
+                                            {user.imageUrl && <img src={user.imageUrl} alt={user.name} className="h-8 w-8 rounded-full object-cover" />}
+                                            <span>{user.name}</span>
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="whitespace-nowrap">{user.email}</TableCell>
                                     <TableCell>
                                         <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className='capitalize'>
                                             {user.role}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        {user.role === 'guard' ? (
+                                            <Badge variant="outline" className='capitalize'>{user.rank}</Badge>
+                                        ) : 'N/A'}
                                     </TableCell>
                                     <TableCell>
                                         {user.role === 'guard' ? (

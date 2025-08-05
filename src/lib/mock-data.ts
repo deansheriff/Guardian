@@ -9,6 +9,8 @@ export type User = {
     start: string; // e.g., "09:00"
     end: string;   // e.g., "17:00"
   };
+  rank?: 'Rookie' | 'Veteran' | 'Elite';
+  imageUrl?: string;
 };
 
 export type Location = {
@@ -39,7 +41,9 @@ const INITIAL_MOCK_USERS: User[] = [
     password: 'password', 
     role: 'guard',
     locationId: '1',
-    shift: { start: '08:00', end: '16:00' }
+    shift: { start: '08:00', end: '16:00' },
+    rank: 'Veteran',
+    imageUrl: 'https://randomuser.me/api/portraits/men/1.jpg'
   },
   { 
     id: '3', 
@@ -48,7 +52,9 @@ const INITIAL_MOCK_USERS: User[] = [
     password: 'password', 
     role: 'guard',
     locationId: '2',
-    shift: { start: '16:00', end: '00:00' }
+    shift: { start: '16:00', end: '00:00' },
+    rank: 'Rookie',
+    imageUrl: 'https://randomuser.me/api/portraits/men/2.jpg'
   },
 ];
 

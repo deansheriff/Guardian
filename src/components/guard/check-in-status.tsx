@@ -132,11 +132,23 @@ export function CheckInStatus() {
         }
         setIsCheckingIn(false);
       },
-      () => {
+      (error) => {
+        let description = 'Could not get your location. Please ensure it is enabled.';
+        switch (error.code) {
+            case error.PERMISSION_DENIED:
+                description = "Location access was denied. Please enable it in your browser settings.";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                description = "Your location information is currently unavailable.";
+                break;
+            case error.TIMEOUT:
+                description = "The request to get your location timed out.";
+                break;
+        }
         toast({
           variant: 'destructive',
           title: 'Check-in Failed',
-          description: 'Could not get your location. Please ensure it is enabled.',
+          description,
         });
         setIsCheckingIn(false);
       }

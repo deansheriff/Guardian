@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getMockLocations, User } from '@/lib/mock-data';
-import { Building, UserCircle } from 'lucide-react';
+import { Building, UserCircle, ShieldCheck } from 'lucide-react';
+import { Badge } from '../ui/badge';
 
 export function GuardHero() {
   const [user, setUser] = useState<User | null>(null);
@@ -36,17 +37,26 @@ export function GuardHero() {
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-4">
-            <UserCircle className="h-10 w-10" />
-            <div>
-                <p className="text-sm text-primary-foreground/80">You are on duty</p>
+            {user.imageUrl ? (
+                <img src={user.imageUrl} alt={user.name} className="h-16 w-16 rounded-full object-cover border-2 border-primary-foreground/50" />
+            ) : (
+                <UserCircle className="h-16 w-16" />
+            )}
+            <div className='space-y-1'>
                 <p className="text-lg font-semibold">{user.name}</p>
+                <Badge variant="secondary" className="capitalize bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30">
+                    <ShieldCheck className="mr-1 h-3 w-3" />
+                    {user.rank}
+                </Badge>
             </div>
         </div>
-        <div className="mt-4 flex items-center gap-4">
-            <Building className="h-10 w-10" />
-            <div>
-                <p className="text-sm text-primary-foreground/80">Assigned Location</p>
-                <p className="text-lg font-semibold">{locationName || 'No location assigned'}</p>
+        <div className="mt-6 border-t border-primary-foreground/20 pt-4">
+             <div className="flex items-center gap-4">
+                <Building className="h-8 w-8 text-primary-foreground/80" />
+                <div>
+                    <p className="text-xs text-primary-foreground/80">Assigned Location</p>
+                    <p className="text-base font-medium">{locationName || 'No location assigned'}</p>
+                </div>
             </div>
         </div>
       </CardContent>

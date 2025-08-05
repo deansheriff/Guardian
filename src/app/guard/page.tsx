@@ -1,9 +1,19 @@
+'use client';
 import { Clock, UserCheck } from "lucide-react";
 import { ClockWidget } from "@/components/guard/clock-widget";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckInStatus } from "@/components/guard/check-in-status";
-import { GuardActivityLog } from "@/components/guard/guard-activity-log";
 import { GuardHero } from "@/components/guard/guard-hero";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const GuardActivityLog = dynamic(
+    () => import('@/components/guard/guard-activity-log').then(mod => mod.GuardActivityLog),
+    {
+        ssr: false,
+        loading: () => <Skeleton className="h-[400px]" />
+    }
+);
  
  export default function GuardDashboardPage() {
    return (

@@ -125,8 +125,20 @@ function AddLocationForm({ onLocationAdded }: { onLocationAdded: () => void }) {
                 };
                 setMarker(pos);
                 map?.panTo(pos);
-            }, () => {
-                toast({ variant: 'destructive', title: 'Error', description: 'The Geolocation service failed.' });
+            }, (error) => {
+                let description = 'The Geolocation service failed.';
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        description = "Location access was denied. Please enable it in your browser settings.";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        description = "Your location information is currently unavailable.";
+                        break;
+                    case error.TIMEOUT:
+                        description = "The request to get your location timed out.";
+                        break;
+                }
+                toast({ variant: 'destructive', title: 'Error', description });
             });
         } else {
             toast({ variant: 'destructive', title: 'Error', description: 'Your browser doesn\'t support geolocation.' });

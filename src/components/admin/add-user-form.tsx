@@ -31,13 +31,15 @@ const formSchema = z.object({
     start: z.string(),
     end: z.string(),
   }).optional(),
+  rank: z.enum(['Rookie', 'Veteran', 'Elite']).optional(),
+  imageUrl: z.string().optional(),
 }).refine(data => {
-    if (data.role === 'guard' && (!data.locationId || !data.shift)) {
+    if (data.role === 'guard' && (!data.locationId || !data.shift || !data.rank)) {
         return false;
     }
     return true;
 }, {
-    message: "Guards must have an assigned location and shift.",
+    message: "Guards must have an assigned location, shift and rank.",
     path: ['role'],
 });
 
@@ -63,6 +65,8 @@ export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => vo
       password: '',
       role: 'guard',
       shift: { start: '09:00', end: '17:00' },
+      rank: 'Rookie',
+      imageUrl: '',
     },
   });
  
@@ -79,6 +83,8 @@ export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => vo
          role: userToEdit.role,
          locationId: userToEdit.locationId,
          shift: userToEdit.shift,
+         rank: userToEdit.rank,
+         imageUrl: userToEdit.imageUrl,
        });
      }
    }, [userToEdit, form]);
@@ -117,6 +123,8 @@ export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => vo
             ...(values.role === 'guard' && {
                 locationId: values.locationId,
                 shift: values.shift,
+                rank: values.rank,
+                imageUrl: values.imageUrl,
             })
         };
         saveMockUsers([...currentUsers, newUser]);
@@ -213,6 +221,50 @@ export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => vo
                                 {locations.map(loc => <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="rank"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Guard Rank</FormLabel>
+                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a rank" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="Rookie">Rookie</SelectItem>
+                                <SelectItem value="Veteran">Veteran</SelectItem>
+                                <SelectItem value="Elite">Elite</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="imageUrl"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Profile Image</FormLabel>
+                        <FormControl>
+                            <Input type="file" onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                    const file = e.target.files[0];
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                        form.setValue('imageUrl', reader.result as string);
+                                    }
+                                    reader.readAsDataURL(file);
+                                }
+                            }}/>
+                        </FormControl>
                         <FormMessage />
                         </FormItem>
                     )}

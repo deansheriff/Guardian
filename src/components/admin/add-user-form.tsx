@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UserPlus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { getMockLocations, getMockUsers, saveMockUsers, User, Location } from '@/lib/mock-data';
+import { User, Location } from '@/lib/mock-data';
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -27,14 +27,10 @@ const formSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }).optional().or(z.literal('')),
   role: z.enum(['admin', 'guard']),
   locationId: z.string().optional(),
-  shift: z.object({
-    start: z.string(),
-    end: z.string(),
-  }).optional(),
   rank: z.enum(['Rookie', 'Veteran', 'Elite']).optional(),
   imageUrl: z.string().optional(),
 }).refine(data => {
-    if (data.role === 'guard' && (!data.locationId || !data.shift || !data.rank)) {
+    if (data.role === 'guard' && (!data.locationId || !data.rank)) {
         return false;
     }
     return true;
@@ -51,7 +47,7 @@ const generateTimeOptions = () => {
     return options;
 }
 
-export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => void, userToEdit: User | null }) {
+export function AddUserForm({ onUserAdded, userToEdit, isAdmin = false }: { onUserAdded: () => void, userToEdit: User | null, isAdmin?: boolean }) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -63,8 +59,7 @@ export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => vo
       name: '',
       email: '',
       password: '',
-      role: 'guard',
-      shift: { start: '09:00', end: '17:00' },
+      role: isAdmin ? 'admin' : 'guard',
       rank: 'Rookie',
       imageUrl: '',
     },
@@ -73,7 +68,12 @@ export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => vo
    const role = form.watch('role');
    
    useEffect(() => {
-     setLocations(getMockLocations());
+     async function fetchLocations() {
+        const res = await fetch('/api/locations');
+        const data = await res.json();
+        setLocations(data);
+     }
+     fetchLocations();
      if (userToEdit) {
        form.reset({
          id: userToEdit.id,
@@ -82,7 +82,6 @@ export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => vo
          password: '',
          role: userToEdit.role,
          locationId: userToEdit.locationId,
-         shift: userToEdit.shift,
          rank: userToEdit.rank,
          imageUrl: userToEdit.imageUrl,
        });
@@ -93,50 +92,31 @@ export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => vo
    async function onSubmit(values: z.infer<typeof formSchema>) {
      setIsLoading(true);
  
-     await new Promise(resolve => setTimeout(resolve, 1000));
-     
-     const currentUsers = getMockUsers();
-     
-     if (userToEdit) {
-        const updatedUsers = currentUsers.map(user => {
-            if (user.id === userToEdit.id) {
-                return {
-                    ...user,
-                    ...values,
-                    password: values.password ? values.password : user.password,
-                };
-            }
-            return user;
-        });
-        saveMockUsers(updatedUsers);
+      const method = userToEdit ? 'PUT' : 'POST';
+      const url = userToEdit ? `/api/users/${userToEdit.id}` : '/api/users';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      if (response.ok) {
         toast({
-            title: 'User Updated',
-            description: `User ${values.name} has been successfully updated.`,
+          title: userToEdit ? 'User Updated' : 'User Created',
+          description: `User ${values.name} has been successfully ${userToEdit ? 'updated' : 'created'}.`,
         });
-     } else {
-        const newUser: User = {
-            id: (currentUsers.length + 1).toString(),
-            password: values.password,
-            name: values.name,
-            email: values.email,
-            role: values.role,
-            ...(values.role === 'guard' && {
-                locationId: values.locationId,
-                shift: values.shift,
-                rank: values.rank,
-                imageUrl: values.imageUrl,
-            })
-        };
-        saveMockUsers([...currentUsers, newUser]);
+        form.reset();
+        onUserAdded();
+      } else {
         toast({
-          title: 'User Created',
-          description: `User ${values.name} has been successfully created.`,
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Something went wrong.',
         });
-     }
+      }
      
      setIsLoading(false);
-     form.reset();
-     onUserAdded();
    }
 
   return (
@@ -181,7 +161,7 @@ export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => vo
             </FormItem>
           )}
         />
-         <FormField
+         {!isAdmin && <FormField
           control={form.control}
           name="role"
           render={({ field }) => (
@@ -201,7 +181,7 @@ export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => vo
               <FormMessage />
             </FormItem>
           )}
-        />
+        />}
 
         {role === 'guard' && (
             <>
@@ -270,48 +250,6 @@ export function AddUserForm({ onUserAdded, userToEdit }: { onUserAdded: () => vo
                     )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="shift.start"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Shift Start</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Start time" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {timeOptions.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="shift.end"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Shift End</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="End time" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {timeOptions.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
             </>
         )}
 

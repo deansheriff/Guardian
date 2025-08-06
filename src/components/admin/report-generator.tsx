@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -10,22 +10,34 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-
-const mockCheckIns = [
-  { guard: 'Guard One', timestamp: new Date(new Date().setDate(new Date().getDate() -1)).toISOString(), location: 'Main Gate' },
-  { guard: 'Guard Two', timestamp: new Date(new Date().setDate(new Date().getDate() -1)).toISOString(), location: 'East Wing' },
-  { guard: 'Guard One', timestamp: new Date().toISOString(), location: 'West Wing' },
-  { guard: 'Guard One', timestamp: new Date(new Date().setHours(new Date().getHours() - 2)).toISOString(), location: 'Main Gate' },
-];
+import { Activity, Location } from '@/lib/mock-data';
 
 export function ReportGenerator() {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [reportData, setReportData] = useState<typeof mockCheckIns>([]);
+  const [reportData, setReportData] = useState<Activity[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
 
-  const handleGenerateReport = () => {
+  useEffect(() => {
+    async function fetchLocations() {
+      const res = await fetch('/api/locations');
+      const data = await res.json();
+      setLocations(data);
+    }
+    fetchLocations();
+  }, []);
+
+  const getLocationName = (locationId?: string) => {
+    if (!locationId) return 'N/A';
+    const location = locations.find(l => l.id === locationId);
+    return location ? location.name : 'Unknown';
+  };
+
+  const handleGenerateReport = async () => {
     if (date) {
-      const filteredData = mockCheckIns.filter(
-        (checkIn) => format(new Date(checkIn.timestamp), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+      const res = await fetch('/api/activities');
+      const activities = await res.json();
+      const filteredData = activities.filter(
+        (activity: Activity) => (activity.type === 'Check-in' || activity.type === 'Clock In') && format(new Date(activity.timestamp), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
       );
       setReportData(filteredData);
     }
@@ -78,7 +90,7 @@ export function ReportGenerator() {
                             {reportData.map((item, index) => (
                                 <li key={index} className="flex justify-between items-center p-2 rounded-md border">
                                     <span className="font-semibold">{item.guard}</span>
-                                    <span>{item.location}</span>
+                                    <span>{getLocationName(item.location)}</span>
                                     <span className="text-sm text-muted-foreground">{new Date(item.timestamp).toLocaleTimeString()}</span>
                                 </li>
                             ))}

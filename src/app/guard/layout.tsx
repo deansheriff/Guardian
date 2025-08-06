@@ -1,13 +1,18 @@
 'use client';
 
 import {
+  Calendar,
   LayoutDashboard,
   LogOut,
   Settings,
   ShieldCheck,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
+import { useActiveGuards } from '@/context/active-guards-context';
+import { useToast } from '@/hooks/use-toast';
+import { User } from '@/lib/mock-data';
 
 import {
   SidebarProvider,
@@ -24,37 +29,38 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import BottomNav from '@/components/guard/bottom-nav';
+import { UserProvider, useUser } from '@/context/user-context';
 
-export default function GuardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function GuardLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [user, setUser] = useState<{name: string, email: string} | null>(null);
+  const { user, setUser } = useUser();
   const [isClient, setIsClient] = useState(false);
+  const { removeActiveGuard } = useActiveGuards();
 
   useEffect(() => {
     setIsClient(true);
-    try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-         if (parsedUser.role !== 'guard') {
-          router.push('/');
+    async function checkSession() {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+            const { user } = await response.json();
+            if (user.role !== 'guard') {
+                router.push('/');
+            } else {
+                setUser(user);
+            }
         } else {
-          setUser(parsedUser);
+            router.push('/');
         }
-      } else {
-        router.push('/');
-      }
-    } catch (error) {
-      router.push('/');
     }
-  }, [router]);
+    checkSession();
+  }, [router, setUser]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
+  const handleLogout = async () => {
+    if (user) {
+      removeActiveGuard(user.id);
+    }
+    await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/');
   };
   
@@ -86,17 +92,21 @@ export default function GuardLayout({
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/guard" isActive>
-                <LayoutDashboard />
-                Dashboard
-              </SidebarMenuButton>
+              <Link href="/guard">
+                <SidebarMenuButton isActive>
+                  <LayoutDashboard />
+                  Dashboard
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton href="/guard">
-                <Settings />
-                Settings
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+           <SidebarMenuItem>
+             <Link href="/guard/shifts">
+               <SidebarMenuButton>
+                 <Calendar />
+                 Shifts
+               </SidebarMenuButton>
+             </Link>
+           </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
@@ -110,22 +120,24 @@ export default function GuardLayout({
               <span className="text-xs text-muted-foreground">{user.email}</span>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
-            <LogOut />
-          </Button>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center justify-between border-b bg-background px-4 lg:px-6">
-            <div className="md:hidden">
-                <SidebarTrigger />
-            </div>
-            <div className="flex-1 text-right">
-                {/* Header content can go here */}
-            </div>
-        </header>
-        <main>{children}</main>
+        <main className="mb-16 md:mb-0">{children}</main>
+        <BottomNav />
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+export default function GuardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <UserProvider>
+      <GuardLayoutContent>{children}</GuardLayoutContent>
+    </UserProvider>
   );
 }

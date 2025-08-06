@@ -5,26 +5,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
 import { LogIn, LogOut, UserCheck, History } from 'lucide-react';
-import { User } from '@/lib/mock-data';
-
-type Activity = {
-  id: string;
-  guardId: string;
-  guard: string;
-  type: 'Clock In' | 'Clock Out' | 'Check-in';
-  timestamp: string;
-  status: 'Success' | 'Failed';
-};
-
-// This should be fetched from a shared source in a real app
-const mockActivities: Activity[] = [
-    { id: '1', guardId: '2', guard: 'Guard One', type: 'Clock In', timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), status: 'Success' },
-    { id: '2', guardId: '2', guard: 'Guard One', type: 'Check-in', timestamp: new Date(Date.now() - 3600000 * 1).toISOString(), status: 'Success' },
-    { id: '3', guardId: '3', guard: 'Guard Two', type: 'Clock In', timestamp: new Date(Date.now() - 3600000 * 8).toISOString(), status: 'Success' },
-    { id: '4', guardId: '2', guard: 'Guard One', type: 'Check-in', timestamp: new Date().toISOString(), status: 'Success' },
-    { id: '5', guardId: '3', guard: 'Guard Two', type: 'Clock Out', timestamp: new Date().toISOString(), status: 'Success' },
-];
-
+import { User, Activity } from '@/lib/mock-data';
 
 const ActivityIcon = ({ type }: { type: Activity['type']}) => {
     switch (type) {
@@ -44,17 +25,23 @@ export function GuardActivityLog() {
     const [user, setUser] = useState<User | null>(null);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            setUser(parsedUser);
-            
-            const userActivities = mockActivities
-                .filter(a => a.guardId === parsedUser.id)
-                .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-            
-            setActivities(userActivities);
+        async function fetchActivities() {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                const parsedUser = JSON.parse(storedUser);
+                setUser(parsedUser);
+                
+                const res = await fetch('/api/activities');
+                const allActivities = await res.json();
+                
+                const userActivities = allActivities
+                    .filter((a: Activity) => a.guardId === parsedUser.id)
+                    .sort((a: Activity, b: Activity) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                
+                setActivities(userActivities);
+            }
         }
+        fetchActivities();
     }, []);
 
     return (

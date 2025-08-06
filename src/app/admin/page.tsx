@@ -30,6 +30,26 @@ const SettingsForm = dynamic(
     { ssr: false, loading: () => <Skeleton className="h-[200px]" /> }
 );
 
+const IncidentReportLog = dynamic(
+    () => import('@/components/admin/incident-report-log').then(mod => mod.default),
+    { ssr: false, loading: () => <Skeleton className="h-[400px]" /> }
+);
+
+const ActiveGuardsList = dynamic(
+    () => import('@/components/admin/active-guards-list').then(mod => mod.default),
+    { ssr: false, loading: () => <Skeleton className="h-[400px]" /> }
+);
+
+const ShiftScheduler = dynamic(
+    () => import('@/components/admin/shift-scheduler').then(mod => mod.default),
+    { ssr: false, loading: () => <Skeleton className="h-[400px]" /> }
+);
+
+const ShiftDisplay = dynamic(
+    () => import('@/components/admin/shift-display').then(mod => mod.default),
+    { ssr: false, loading: () => <Skeleton className="h-[400px]" /> }
+);
+
 export default function AdminDashboardPage() {
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
@@ -52,6 +72,15 @@ export default function AdminDashboardPage() {
                 </TabsTrigger>
                 <TabsTrigger value="settings">
                     <SlidersHorizontal className="mr-2 h-4 w-4" /> Shift Settings
+                </TabsTrigger>
+                <TabsTrigger value="incident-reports">
+                    <FileText className="mr-2 h-4 w-4" /> Incident Reports
+                </TabsTrigger>
+                <TabsTrigger value="active-guards">
+                    <Users className="mr-2 h-4 w-4" /> Active Guards
+                </TabsTrigger>
+                <TabsTrigger value="shifts">
+                    <SlidersHorizontal className="mr-2 h-4 w-4" /> Shifts
                 </TabsTrigger>
             </TabsList>
             <TabsContent value="activity" className="space-y-4">
@@ -76,6 +105,18 @@ export default function AdminDashboardPage() {
                        <SettingsForm />
                     </CardContent>
                 </Card>
+            </TabsContent>
+            <TabsContent value="incident-reports" className="space-y-4">
+                <IncidentReportLog />
+            </TabsContent>
+            <TabsContent value="active-guards" className="space-y-4">
+                <ActiveGuardsList />
+            </TabsContent>
+            <TabsContent value="shifts" className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                    <ShiftScheduler />
+                    <ShiftDisplay />
+                </div>
             </TabsContent>
         </Tabs>
     </div>

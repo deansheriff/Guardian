@@ -15,34 +15,28 @@ import { Button } from '../ui/button';
 import { MapPin, PlusCircle, Clock, Pencil, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { AddUserForm } from './add-user-form';
-import { getMockLocations, getMockUsers, User, Location, saveMockUsers } from '@/lib/mock-data';
+import { User, Location } from '@/lib/mock-data';
+import { useData } from '@/context/data-context';
 
 export function UserManagement() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [locations, setLocations] = useState<Location[]>([]);
+    const { users, locations, refetchData } = useData();
     const [isAddUserOpen, setIsAddUserOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     
     const refreshUsers = () => {
-        setUsers(getMockUsers());
+        refetchData();
         setIsAddUserOpen(false);
         setEditingUser(null);
     }
     
-    useEffect(() => {
-        setUsers(getMockUsers());
-        setLocations(getMockLocations());
-    }, []);
-
     const getLocationName = (locationId?: string) => {
         if (!locationId) return 'N/A';
         return locations.find(loc => loc.id === locationId)?.name || 'Unknown Location';
     }
 
-    const handleDeleteUser = (userId: string) => {
-        const updatedUsers = users.filter(user => user.id !== userId);
-        saveMockUsers(updatedUsers);
-        setUsers(updatedUsers);
+    const handleDeleteUser = async (userId: string) => {
+        await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+        refetchData();
     };
 
     const handleEditUser = (user: User) => {

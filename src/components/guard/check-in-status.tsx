@@ -13,7 +13,9 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '../ui/progress';
 import { Loader2 } from 'lucide-react';
-import { getMockUsers, getMockLocations, User, Location } from '@/lib/mock-data';
+import { User, Location } from '@/lib/mock-data';
+import { useActiveGuards } from '@/context/active-guards-context';
+import { useUser } from '@/context/user-context';
 
 export function CheckInStatus() {
   const [isClockedIn, setIsClockedIn] = useState(false);
@@ -24,20 +26,27 @@ export function CheckInStatus() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const { toast } = useToast();
+  const { updateGuardStatus } = useActiveGuards();
 
-  const updateStatus = useCallback(() => {
-    const storedStatus = localStorage.getItem('clockStatus');
-    const storedFreq = localStorage.getItem('checkinFrequency');
-    const storedLastCheckIn = localStorage.getItem('lastCheckIn');
+  const updateStatus = useCallback(async () => {
+    const res = await fetch('/api/activities');
+    const activities = await res.json();
+    const userRes = await fetch('/api/auth/me');
+    const { user } = await userRes.json();
 
-    const clockedIn = storedStatus ? JSON.parse(storedStatus).clockedIn : false;
+    const userActivities = activities.filter((a: any) => a.guardId === user.id);
+    const lastClockIn = userActivities.find((a: any) => a.type === 'Clock In');
+    const lastClockOut = userActivities.find((a: any) => a.type === 'Clock Out');
+
+    const clockedIn = lastClockIn && (!lastClockOut || new Date(lastClockIn.timestamp) > new Date(lastClockOut.timestamp));
     setIsClockedIn(clockedIn);
-    setFrequency(storedFreq ? parseInt(storedFreq, 10) : 60);
-    setLastCheckIn(storedLastCheckIn ? new Date(storedLastCheckIn) : null);
+
+    const lastCheckInActivity = userActivities.find((a: any) => a.type === 'Check-in');
+    setLastCheckIn(lastCheckInActivity ? new Date(lastCheckInActivity.timestamp) : null);
 
     if (clockedIn) {
-      const baseTime = storedLastCheckIn ? new Date(storedLastCheckIn) : new Date(JSON.parse(storedStatus || '{}').startTime);
-      const nextTime = new Date(baseTime.getTime() + (storedFreq ? parseInt(storedFreq, 10) : 60) * 60 * 1000);
+      const baseTime = lastCheckInActivity ? new Date(lastCheckInActivity.timestamp) : new Date(lastClockIn.timestamp);
+      const nextTime = new Date(baseTime.getTime() + 60 * 60 * 1000);
       setNextCheckIn(nextTime);
     } else {
         setNextCheckIn(null);
@@ -55,13 +64,18 @@ export function CheckInStatus() {
       return;
     }
 
-    const timer = setInterval(() => {
+    const timer = setInterval(async () => {
       const now = new Date();
       const diff = nextCheckIn.getTime() - now.getTime();
       setTimeToNext(diff > 0 ? diff : 0);
 
       if (diff <= 0) {
         setShowPrompt(true);
+        const userRes = await fetch('/api/auth/me');
+        const { user } = await userRes.json();
+        if (user.id) {
+            updateGuardStatus(user.id, 'Missed Check-in');
+        }
       }
     }, 1000);
 
@@ -83,20 +97,20 @@ export function CheckInStatus() {
     return R * c; // in metres
   }
 
-  const handleCheckIn = () => {
+  const { user } = useUser();
+
+  const handleCheckIn = async () => {
     setIsCheckingIn(true);
     
-    const users = getMockUsers();
-    const locations = getMockLocations();
-    const currentUser = users.find((u: User) => u.email === JSON.parse(localStorage.getItem('user') || '{}').email);
-    
-    if (!currentUser || !currentUser.locationId) {
+    if (!user || !user.locationId) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not find your assigned location.' });
         setIsCheckingIn(false);
         return;
     }
 
-    const assignedLocation = locations.find((l: Location) => l.id === currentUser.locationId);
+    const locationsRes = await fetch('/api/locations');
+    const locations = await locationsRes.json();
+    const assignedLocation = locations.find((l: Location) => l.id === user.locationId);
 
     if (!assignedLocation) {
         toast({ variant: 'destructive', title: 'Error', description: 'Assigned location not found.' });
@@ -105,7 +119,7 @@ export function CheckInStatus() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const distance = getDistance(
             position.coords.latitude,
             position.coords.longitude,
@@ -113,9 +127,26 @@ export function CheckInStatus() {
             assignedLocation.longitude
         );
 
-        if (distance <= (assignedLocation.radius || 30)) {
-            const now = new Date();
-            localStorage.setItem('lastCheckIn', now.toISOString());
+        const now = new Date();
+        const success = distance <= (assignedLocation.radius || 30);
+
+        const newActivity = {
+            id: now.toISOString(),
+            guardId: user.id,
+            guard: user.name,
+            type: 'Check-in',
+            timestamp: now.toISOString(),
+            status: success ? 'Success' : 'Failed',
+            location: assignedLocation.name
+        };
+
+        await fetch('/api/activities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newActivity),
+        });
+
+        if (success) {
             setLastCheckIn(now);
             setShowPrompt(false);
             toast({

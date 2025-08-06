@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getMockUsers, User } from '@/lib/mock-data';
+import { User } from '@/lib/mock-data';
 import { ScrollArea, ScrollBar } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
+import { useData } from '@/context/data-context';
 import { Clock, LogIn, LogOut, UserCheck } from 'lucide-react';
 
 type Activity = {
@@ -15,14 +16,6 @@ type Activity = {
   timestamp: string;
   status: 'Success' | 'Failed';
 };
-
-const mockActivities: Activity[] = [
-    { id: '1', guardId: '2', guard: 'Guard One', type: 'Clock In', timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), status: 'Success' },
-    { id: '2', guardId: '2', guard: 'Guard One', type: 'Check-in', timestamp: new Date(Date.now() - 3600000 * 1).toISOString(), status: 'Success' },
-    { id: '3', guardId: '3', guard: 'Guard Two', type: 'Clock In', timestamp: new Date(Date.now() - 3600000 * 8).toISOString(), status: 'Success' },
-    { id: '4', guardId: '2', guard: 'Guard One', type: 'Check-in', timestamp: new Date().toISOString(), status: 'Success' },
-    { id: '5', guardId: '3', guard: 'Guard Two', type: 'Clock Out', timestamp: new Date().toISOString(), status: 'Success' },
-];
 
 type GroupedActivities = {
     [guardId: string]: {
@@ -45,39 +38,26 @@ const ActivityIcon = ({ type }: { type: Activity['type']}) => {
 }
 
 export function ActivityLog() {
+    const { users, activities } = useData();
     const [groupedActivities, setGroupedActivities] = useState<GroupedActivities>({});
     
     useEffect(() => {
-        const users = getMockUsers();
-        const guards = users.filter(u => u.role === 'guard');
-        
-        const sortedActivities = mockActivities.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        const guards = users.filter((u: User) => u.role === 'guard');
+        const sortedActivities = activities.sort((a: Activity, b: Activity) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
         const grouped: GroupedActivities = {};
         
-        guards.forEach(guard => {
+        guards.forEach((guard: User) => {
             if (guard.id) {
                  grouped[guard.id] = {
                     guard,
-                    activities: sortedActivities.filter(a => a.guardId === guard.id)
+                    activities: sortedActivities.filter((a: Activity) => a.guardId === guard.id)
                 };
             }
         });
 
-        // Add guards from activities who might not be in the main user list anymore
-        sortedActivities.forEach(activity => {
-            if (!grouped[activity.guardId]) {
-                const guardUser = users.find(u => u.id === activity.guardId) || { id: activity.guardId, name: activity.guard, email: '', role: 'guard' };
-                 grouped[activity.guardId] = {
-                    guard: guardUser,
-                    activities: [activity]
-                }
-            }
-        });
-
-
         setGroupedActivities(grouped);
-    }, []);
+    }, [users, activities]);
 
     const activeGuards = Object.values(groupedActivities).filter(g => g.activities.length > 0);
 

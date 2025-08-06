@@ -2,29 +2,29 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getMockLocations, User } from '@/lib/mock-data';
+import { User } from '@/lib/mock-data';
 import { Building, UserCircle, ShieldCheck } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { useUser } from '@/context/user-context';
+import { Location } from '@/lib/mock-data';
 
 export function GuardHero() {
-  const [user, setUser] = useState<User | null>(null);
-  const [locationName, setLocationName] = useState<string>('');
+  const { user } = useUser();
+  const [locationName, setLocationName] = useState('No location assigned');
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser: User = JSON.parse(storedUser);
-      setUser(parsedUser);
-
-      if (parsedUser.locationId) {
-        const locations = getMockLocations();
-        const userLocation = locations.find(loc => loc.id === parsedUser.locationId);
-        if (userLocation) {
-          setLocationName(userLocation.name);
+    async function fetchLocation() {
+      if (user && user.locationId) {
+        const res = await fetch('/api/locations');
+        const locations = await res.json();
+        const location = locations.find((l: Location) => l.id === user.locationId);
+        if (location) {
+          setLocationName(location.name);
         }
       }
     }
-  }, []);
+    fetchLocation();
+  }, [user]);
 
   if (!user) {
     return null; // Or a loading skeleton

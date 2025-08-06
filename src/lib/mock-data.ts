@@ -21,58 +21,28 @@ export type Location = {
     radius?: number;
 }
 
-const INITIAL_MOCK_LOCATIONS: Location[] = [
-    { id: '1', name: 'Downtown SF Office', latitude: 37.7749, longitude: -122.4194, radius: 30 },
-    { id: '2', name: 'LA Pier', latitude: 33.7413, longitude: -118.2931, radius: 30 },
-];
-
-const INITIAL_MOCK_USERS: User[] = [
-  { 
-    id: '1', 
-    name: 'Admin User', 
-    email: 'admin@example.com', 
-    password: 'password', 
-    role: 'admin' 
-  },
-  { 
-    id: '2', 
-    name: 'Guard One', 
-    email: 'guard@example.com', 
-    password: 'password', 
-    role: 'guard',
-    locationId: '1',
-    shift: { start: '08:00', end: '16:00' },
-    rank: 'Veteran',
-    imageUrl: 'https://randomuser.me/api/portraits/men/1.jpg'
-  },
-  { 
-    id: '3', 
-    name: 'Guard Two', 
-    email: 'guard2@example.com', 
-    password: 'password', 
-    role: 'guard',
-    locationId: '2',
-    shift: { start: '16:00', end: '00:00' },
-    rank: 'Rookie',
-    imageUrl: 'https://randomuser.me/api/portraits/men/2.jpg'
-  },
-];
-
-
-const initializeLocalStorage = (key: string, initialData: any[]) => {
-    if (typeof window !== 'undefined' && !localStorage.getItem(key)) {
-        localStorage.setItem(key, JSON.stringify(initialData));
-    }
+export type Activity = {
+  id: string;
+  guardId: string;
+  guard: string;
+  type: 'Clock In' | 'Clock Out' | 'Check-in';
+  timestamp: string;
+  status: 'Success' | 'Failed';
+  location?: string;
 };
 
-initializeLocalStorage('MOCK_USERS', INITIAL_MOCK_USERS);
-initializeLocalStorage('MOCK_LOCATIONS', INITIAL_MOCK_LOCATIONS);
-
+export type GuardActivity = {
+  id: string;
+  guardId: string;
+  type: 'Clock In' | 'Clock Out' | 'Check-in';
+  timestamp: string;
+  status: 'Success' | 'Failed';
+};
 
 export const getMockUsers = (): User[] => {
-    if (typeof window === 'undefined') return INITIAL_MOCK_USERS;
+    if (typeof window === 'undefined') return [];
     const users = localStorage.getItem('MOCK_USERS');
-    return users ? JSON.parse(users) : INITIAL_MOCK_USERS;
+    return users ? JSON.parse(users) : [];
 }
 
 export const saveMockUsers = (users: User[]) => {
@@ -82,13 +52,25 @@ export const saveMockUsers = (users: User[]) => {
 }
 
 export const getMockLocations = (): Location[] => {
-    if (typeof window === 'undefined') return INITIAL_MOCK_LOCATIONS;
+    if (typeof window === 'undefined') return [];
     const locations = localStorage.getItem('MOCK_LOCATIONS');
-    return locations ? JSON.parse(locations) : INITIAL_MOCK_LOCATIONS;
+    return locations ? JSON.parse(locations) : [];
 }
 
 export const saveMockLocations = (locations: Location[]) => {
     if (typeof window !== 'undefined') {
         localStorage.setItem('MOCK_LOCATIONS', JSON.stringify(locations));
+    }
+}
+
+export const getMockActivities = (): Activity[] => {
+    if (typeof window === 'undefined') return [];
+    const activities = localStorage.getItem('MOCK_ACTIVITIES');
+    return activities ? JSON.parse(activities) : [];
+}
+
+export const saveMockActivities = (activities: Activity[]) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('MOCK_ACTIVITIES', JSON.stringify(activities));
     }
 }

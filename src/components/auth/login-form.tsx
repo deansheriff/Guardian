@@ -19,7 +19,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, LogIn } from 'lucide-react';
-import { getMockUsers } from '@/lib/mock-data';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -42,36 +41,42 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const users = getMockUsers();
-    const user = users.find(u => u.email === values.email);
-
-    if (user && user.password === values.password) {
-      toast({
-        title: 'Login Successful',
-        description: `Welcome back, ${user.name}!`,
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
       });
-      // In a real app, you'd set a session cookie here.
-      // We'll use localStorage for this mock.
-      localStorage.setItem('user', JSON.stringify(user));
 
-      if (user.role === 'admin') {
-        router.push('/admin');
+      if (response.ok) {
+        const { user } = await response.json();
+        toast({
+          title: 'Login Successful',
+          description: `Welcome back, ${user.name}!`,
+        });
+        if (user.role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push('/guard');
+        }
       } else {
-        router.push('/guard');
+        const { error } = await response.json();
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: error || 'Invalid email or password. Please try again.',
+        });
+        form.reset();
       }
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: 'Invalid email or password. Please try again.',
-      });
-      form.reset();
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: 'An unexpected error occurred. Please try again.',
+        });
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }
 
   return (

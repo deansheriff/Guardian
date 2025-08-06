@@ -2,6 +2,11 @@ import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { PanicProvider } from '@/context/panic-context';
+import { IncidentReportProvider } from '@/context/incident-report-context';
+import { ActiveGuardsProvider } from '@/context/active-guards-context';
+import { ShiftProvider } from '@/context/shift-context';
+import { DataProvider } from '@/context/data-context';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -27,8 +32,18 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} dark`} style={{ colorScheme: 'dark' }} suppressHydrationWarning>
       <body className="font-body antialiased">
-        {children}
-        <Toaster />
+        <PanicProvider>
+          <IncidentReportProvider>
+            <ActiveGuardsProvider>
+              <ShiftProvider>
+                <DataProvider>
+                  {children}
+                </DataProvider>
+                <Toaster />
+              </ShiftProvider>
+            </ActiveGuardsProvider>
+          </IncidentReportProvider>
+        </PanicProvider>
       </body>
     </html>
   );

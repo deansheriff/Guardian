@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getMockLocations, saveMockLocations, Location } from '@/lib/mock-data';
+import { Location } from '@/lib/mock-data';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
@@ -28,8 +28,10 @@ export function LocationManagement() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
   
-  const refreshLocations = useCallback(() => {
-    setLocations(getMockLocations());
+  const refreshLocations = useCallback(async () => {
+    const res = await fetch('/api/locations');
+    const data = await res.json();
+    setLocations(data);
     setIsAddLocationOpen(false);
   }, []);
 
@@ -37,10 +39,8 @@ export function LocationManagement() {
     refreshLocations();
   }, [refreshLocations]);
   
-  const handleDeleteLocation = (id: string) => {
-    const currentLocations = getMockLocations();
-    const updatedLocations = currentLocations.filter(loc => loc.id !== id);
-    saveMockLocations(updatedLocations);
+  const handleDeleteLocation = async (id: string) => {
+    await fetch(`/api/locations/${id}`, { method: 'DELETE' });
     refreshLocations();
   }
 
@@ -145,29 +145,33 @@ function AddLocationForm({ onLocationAdded }: { onLocationAdded: () => void }) {
         }
     };
     
-    const handleSaveLocation = () => {
+    const handleSaveLocation = async () => {
         if(!marker || !locationName.trim()){
             toast({ variant: 'destructive', title: 'Error', description: 'Please set a pin on the map and provide a location name.'});
             return;
         }
         
         setIsLoading(true);
-        //Simulate API call
-        setTimeout(() => {
-            const currentLocations = getMockLocations();
-            const newLocation: Location = {
-                id: (currentLocations.length + 1).toString(),
-                name: locationName,
-                latitude: marker.lat,
-                longitude: marker.lng,
-                radius: 30,
-            };
-            saveMockLocations([...currentLocations, newLocation]);
-            toast({ title: 'Location Saved', description: `${locationName} has been added.`});
-            setIsLoading(false);
-            onLocationAdded();
-        }, 1000);
+        const newLocation: Omit<Location, 'id'> = {
+            name: locationName,
+            latitude: marker.lat,
+            longitude: marker.lng,
+            radius: 30,
+        };
 
+        const response = await fetch('/api/locations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newLocation),
+        });
+
+        if (response.ok) {
+            toast({ title: 'Location Saved', description: `${locationName} has been added.`});
+            onLocationAdded();
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: 'Something went wrong.'});
+        }
+        setIsLoading(false);
     }
 
     if (loadError) return <div>Error loading maps. Make sure your API key is configured correctly.</div>;

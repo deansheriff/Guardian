@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Loader2, LogIn, LogOut, MapPinOff, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { getMockLocations, User, Location } from '@/lib/mock-data';
+import { User, Location } from '@/lib/mock-data';
+import { format } from 'date-fns';
+import { useUser } from '@/context/user-context';
 
 
 const GEOFENCE_RADIUS_METERS = 500; // 500 meters
@@ -31,27 +33,20 @@ export function ClockWidget() {
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [shiftStartTime, setShiftStartTime] = useState<Date | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useUser();
   const [locations, setLocations] = useState<Location[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedStatus = localStorage.getItem('clockStatus');
-    if (storedStatus) {
-      const { clockedIn, startTime } = JSON.parse(storedStatus);
-      setIsClockedIn(clockedIn);
-      setShiftStartTime(startTime ? new Date(startTime) : null);
+    async function fetchLocations() {
+        const locationsRes = await fetch('/api/locations');
+        const locationsData = await locationsRes.json();
+        setLocations(locationsData);
     }
-    
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-        setUser(JSON.parse(storedUser));
-    }
-    setLocations(getMockLocations());
-
+    fetchLocations();
   }, []);
 
-  const handleClockAction = () => {
+  const handleClockAction = async () => {
     setIsLoading(true);
 
     if (!navigator.geolocation) {
@@ -64,7 +59,12 @@ export function ClockWidget() {
       return;
     }
 
-    if (!user || user.role !== 'guard' || !user.locationId || !user.shift) {
+    const shiftsRes = await fetch('/api/shifts');
+    const shifts = await shiftsRes.json();
+    const today = new Date();
+    const todayShift = shifts.find((s: any) => s.guardId === user?.id && s.day === format(today, "yyyy-MM-dd"));
+
+    if (!user || user.role !== 'guard' || !user.locationId || !todayShift) {
         toast({
             variant: 'destructive',
             title: 'Configuration Error',
@@ -87,11 +87,11 @@ export function ClockWidget() {
 
     const now = new Date();
     const currentHour = now.getHours();
-    const startHour = parseInt(user.shift.start.split(':')[0], 10);
-    const endHour = parseInt(user.shift.end.split(':')[0], 10);
+    const startHour = parseInt(todayShift.startTime.split(':')[0], 10);
+    const endHour = parseInt(todayShift.endTime.split(':')[0], 10);
     
     // Handle overnight shifts
-    const isOnShift = endHour > startHour 
+    const isOnShift = endHour > startHour
         ? currentHour >= startHour && currentHour < endHour
         : currentHour >= startHour || currentHour < endHour;
 
@@ -100,7 +100,7 @@ export function ClockWidget() {
         toast({
             variant: 'destructive',
             title: `Clock In Failed`,
-            description: `You can only clock in during your shift (${user.shift.start} - ${user.shift.end}).`,
+            description: `You can only clock in during your shift (${todayShift.startTime} - ${todayShift.endTime}).`,
         });
         setIsLoading(false);
         return;
@@ -108,7 +108,7 @@ export function ClockWidget() {
 
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const distance = haversineDistance(position.coords, assignedLocation);
         
         if (distance <= GEOFENCE_RADIUS_METERS) {
@@ -118,23 +118,43 @@ export function ClockWidget() {
           const newStartTime = newClockedInStatus ? new Date() : null;
           setShiftStartTime(newStartTime);
 
-          localStorage.setItem('clockStatus', JSON.stringify({
-            clockedIn: newClockedInStatus,
-            startTime: newStartTime?.toISOString()
-          }));
+          const newActivity = {
+            id: new Date().toISOString(),
+            guardId: user.id,
+            guard: user.name,
+            type: newClockedInStatus ? 'Clock In' : 'Clock Out',
+            timestamp: new Date().toISOString(),
+            status: 'Success',
+            location: assignedLocation.id
+          };
           
-          if (newClockedInStatus) {
-             localStorage.setItem('lastCheckIn', new Date().toISOString());
-          } else {
-             localStorage.removeItem('lastCheckIn');
-          }
-
+          await fetch('/api/activities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newActivity),
+          });
 
           toast({
             title: `Clock ${newClockedInStatus ? 'In' : 'Out'} Successful`,
             description: `You are at ${assignedLocation.name}.`,
           });
         } else {
+          const newActivity = {
+            id: new Date().toISOString(),
+            guardId: user.id,
+            guard: user.name,
+            type: isClockedIn ? 'Clock Out' : 'Clock In',
+            timestamp: new Date().toISOString(),
+            status: 'Failed',
+            location: assignedLocation.id
+          };
+          
+          await fetch('/api/activities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newActivity),
+          });
+
           toast({
             variant: 'destructive',
             title: `Clock ${isClockedIn ? 'Out' : 'In'} Failed`,

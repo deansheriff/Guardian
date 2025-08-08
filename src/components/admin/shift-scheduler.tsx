@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useShifts } from '@/context/shift-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,6 +84,11 @@ const ShiftScheduler = () => {
             required
           />
           <Button type="submit">Add Shift</Button>
+          <Link href="/admin/analytics" passHref>
+            <Button variant="outline" className="w-full">
+              Analytics
+            </Button>
+          </Link>
         </form>
       </CardContent>
     </Card>

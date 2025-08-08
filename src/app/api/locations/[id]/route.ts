@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { supabase } from '@/lib/db';
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const db = await getDb();
-  await db.run('DELETE FROM locations WHERE id = ?', [params.id]);
+  const { error } = await supabase.from('locations').delete().eq('id', params.id);
+  if (error) {
+    return new NextResponse(JSON.stringify({ error: error.message }), { status: 500 });
+  }
   return new NextResponse(null, { status: 204 });
 }

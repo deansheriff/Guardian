@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { supabase } from '@/lib/db';
 import jwt from 'jsonwebtoken';
 import { parse } from 'cookie';
 
@@ -13,10 +13,13 @@ export async function GET(request: Request) {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { id: string };
-    const db = await getDb();
-    const user = await db.get('SELECT * FROM users WHERE id = ?', [decoded.id]);
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', decoded.id)
+      .single();
 
-    if (!user) {
+    if (error || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 

@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
-import { User } from '@/lib/mock-data';
+import { supabase } from '@/lib/db';
 import jwt from 'jsonwebtoken';
 import { serialize } from 'cookie';
 
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
-    const db = await getDb();
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
 
-    if (!user || user.password !== password) {
+    if (error || !user || user.password !== password) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 

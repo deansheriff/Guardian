@@ -1,9 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
 import { User } from '@/lib/types';
 
-export async function PUT(request: Request, context: { params: { id: string } }) {
-  const { id } = context.params;
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function PUT(request: NextRequest, context: RouteContext) {
+  const { id } = await context.params;
   const user: User = await request.json();
   const { data, error } = await supabase.from('users').update(user).eq('id', id).select();
   if (error) {
@@ -12,8 +16,8 @@ export async function PUT(request: Request, context: { params: { id: string } })
   return NextResponse.json(data?.[0] ?? user);
 }
 
-export async function DELETE(request: Request, context: { params: { id: string } }) {
-  const { id } = context.params;
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const { id } = await context.params;
   const { error } = await supabase.from('users').delete().eq('id', id);
   if (error) {
     return new NextResponse(JSON.stringify({ error: error.message }), { status: 500 });

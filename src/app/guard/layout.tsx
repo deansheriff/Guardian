@@ -102,7 +102,7 @@ function GuardLayoutContent({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
            <div className="flex items-center gap-2">
             <Avatar>
-              <AvatarImage src={user.imageUrl} alt={user.name} />
+              <AvatarImage src={user.image_url} alt={user.name} />
               <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">

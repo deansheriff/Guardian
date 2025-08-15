@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
-import { Shift } from '@/context/shift-context';
+import { Shift } from '@/lib/types';
 
 export async function GET() {
   try {

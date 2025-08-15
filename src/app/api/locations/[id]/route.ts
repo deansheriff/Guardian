@@ -1,8 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
 
-export async function DELETE(request: Request, context: { params: { id: string } }) {
-  const { error } = await supabase.from('locations').delete().eq('id', context.params.id);
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const { id } = await context.params;
+  const { error } = await supabase.from('locations').delete().eq('id', id);
   if (error) {
     return new NextResponse(JSON.stringify({ error: error.message }), { status: 500 });
   }

@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
 import { User } from '@/lib/types';
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export async function PUT(request: Request, context: { params: { id: string } }) {
+  const { id } = context.params;
   const user: User = await request.json();
   const { data, error } = await supabase.from('users').update(user).eq('id', id).select();
   if (error) {
@@ -12,8 +12,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   return NextResponse.json(data?.[0] ?? user);
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export async function DELETE(request: Request, context: { params: { id: string } }) {
+  const { id } = context.params;
   const { error } = await supabase.from('users').delete().eq('id', id);
   if (error) {
     return new NextResponse(JSON.stringify({ error: error.message }), { status: 500 });

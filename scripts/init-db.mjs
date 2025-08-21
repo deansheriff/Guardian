@@ -46,7 +46,7 @@ async function main() {
           status TEXT NOT NULL,
           location TEXT
       );`,
-      `CREATE TABLE IF NOT EXISTS incident_reports (
+      `CREATE TABLE IF NOT EXISTS incidents (
           id TEXT PRIMARY KEY,
           timestamp TIMESTAMPTZ NOT NULL,
           guardName TEXT,
@@ -73,7 +73,6 @@ async function main() {
     ];
 
     for (const query of tableCreationQueries) {
-        // Reverting to use the original 'sql_query' parameter name
         const { error } = await supabase.rpc('execute_sql', { sql_query: query });
         if (error) {
             throw error;
